@@ -1,10 +1,17 @@
 import React from "react";
+
+import Home from "./pages/HomePage";
+import Register from "./pages/register";
+function App() {
+  return <Home />;
+
 import Register from "./pages/register";
 
 function App() {
   return (
     <Register />
   );
+
 }
 
 export default App;
