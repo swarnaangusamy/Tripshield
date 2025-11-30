@@ -1,13 +1,36 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Global styles for your app */
+
+/* Custom colors */
+.bg-peacock {
+  background-color: #046D63;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.bg-tealcustom {
+  background-color: #0E9AA7;
+}
+
+.text-peacock {
+  color: #046D63;
+}
+
+.text-tealcustom {
+  color: #0E9AA7;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.landing-wrapper {
+  min-height: calc(100vh - 120px);
+  background: linear-gradient(
+    135deg,
+    rgba(4, 109, 99, 0.2),
+    rgba(14, 154, 167, 0.15)
+  );
 }
