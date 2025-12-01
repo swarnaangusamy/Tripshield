@@ -1,9 +1,13 @@
-const express = require('express');
+// backend/routes/sosRoutes.js
+const express = require("express");
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const sosController = require('../controllers/sosController');
+const { protect } = require("../middleware/auth");
+const sosController = require("../controllers/sosController");
 
-router.post('/send', protect, sosController.sendSOS);
-router.get('/user/:userId', protect, sosController.getUserSOS);
+// Send SOS
+router.post("/send", protect, sosController.sendSOS);
+
+// Get past SOS alerts for user
+router.get("/user/:id", protect, sosController.getUserSOS);
 
 module.exports = router;

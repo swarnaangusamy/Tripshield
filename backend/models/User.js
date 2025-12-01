@@ -17,7 +17,10 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   emergencyContacts: [EmergencyContactSchema],
   role: { type: String, enum: ['user','admin'], default: 'user' },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 });
 
 module.exports = mongoose.model('User', UserSchema);

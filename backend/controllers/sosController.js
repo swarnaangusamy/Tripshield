@@ -1,53 +1,89 @@
-const SOSAlert = require('../models/SOSAlert');
-const nodemailer = require('nodemailer');
-// placeholder for SMS provider, e.g., Twilio
-// const twilio = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+// backend/controllers/sosController.js
+const User = require("../models/User");
+const SOSAlert = require("../models/SOSAlert");
+const sendEmail = require("../utils/sendEmail");
 
+// Helper for formatting time
+const formatDateTime = () => {
+  const now = new Date();
+  return now.toLocaleString("en-IN", { hour12: true });
+};
+
+/* ======================================================
+   SEND SOS
+====================================================== */
 exports.sendSOS = async (req, res) => {
   try {
-    const { userId, message, coordinates, recipients } = req.body;
+    const user = await User.findById(req.user._id);
+    const { emergencyType, latitude, longitude } = req.body;
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Location missing" });
+    }
+
+    const googleMapURL = `https://maps.google.com/?q=${latitude},${longitude}`;
+
+    // Create SOS entry in DB
     const sos = new SOSAlert({
-      user: userId,
-      message,
-      location: { type: 'Point', coordinates },
-      recipients
+      user: user._id,
+      time: new Date(),
+      location: { type: "Point", coordinates: [longitude, latitude] },
+      message: emergencyType,
+      recipients: user.emergencyContacts
     });
+
     await sos.save();
 
-    // send emails to recipients (simplified)
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: false,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    });
+    // Email content
+    const emailMessage = `
+      🚨 <b>SOS ALERT</b> 🚨<br><br>
 
-    const sendPromises = recipients.map(r =>
-      transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: r.email || process.env.SMTP_USER,
-        subject: 'SOS Alert from TripShield',
-        text: `${message}\nLocation: ${coordinates && coordinates.join(',')}`
-      })
-    );
+      <b>Emergency Type:</b> ${emergencyType}<br>
+      <b>User:</b> ${user.name}<br>
+      <b>Phone:</b> ${user.phoneNumber}<br>
+      <b>Email:</b> ${user.email}<br><br>
 
-    await Promise.all(sendPromises);
+      Needs help immediately!<br><br>
 
-    // TODO: SMS via Twilio
-    res.json({ message: 'SOS sent', sos });
+      <b>Location:</b> <a href="${googleMapURL}">${googleMapURL}</a><br>
+      <b>Time:</b> ${formatDateTime()}<br>
+    `;
+
+    // Send emails
+    for (let c of user.emergencyContacts) {
+      if (c.email) {
+        await sendEmail(
+          c.email,
+          `SOS Alert - ${user.name}`,
+          emailMessage
+        );
+      }
+    }
+
+    res.json({ message: "SOS sent successfully" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("SOS ERROR:", err);
+    res.status(500).json({ message: "Failed to send SOS" });
   }
 };
 
+
+/* ======================================================
+   GET SOS HISTORY OF A USER (Fixes the crash)
+====================================================== */
 exports.getUserSOS = async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const sosList = await SOSAlert.find({ user: userId }).sort({ time: -1 });
-    res.json(sosList);
+    const userId = req.params.id;
+
+    const history = await SOSAlert.find({ user: userId }).sort({ time: -1 });
+
+    res.json(history);
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("getUserSOS ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch SOS history" });
   }
 };

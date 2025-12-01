@@ -21,4 +21,7 @@ const { protect } = require('../middleware/auth');
 const userController = require('../controllers/userController');
 router.get('/me', protect, userController.getMe);
 
+router.put("/update", protect, authController.updateProfile);
+
+
 module.exports = router;

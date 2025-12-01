@@ -1,424 +1,234 @@
-import { useState } from "react";
+// frontend/src/pages/Register.jsx
+import React from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Form, Container } from "react-bootstrap";
+import * as Yup from "yup";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import GradientButton from "../components/GradientButton";
+import EmergencyContactBlock from "../components/EmergencyContactBlock";
+
+// ------------------- Validation Schema -------------------
+const schema = Yup.object().shape({
+  name: Yup.string().required("Full name is required"),
+  phoneNumber: Yup.string()
+    .matches(/^[0-9]{10}$/, "Enter valid 10-digit phone number")
+    .required("Phone number is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  dateOfBirth: Yup.date().required("Date of birth is required"),
+  bloodGroup: Yup.string().required("Blood group required"),
+
+  password: Yup.string()
+    .required("Password required")
+    .matches(/[A-Z]/, "Must include an uppercase letter")
+    .matches(/[0-9]/, "Must include a number")
+    .matches(/[!@#$%^&*]/, "Must include a special symbol")
+    .min(8, "Must be at least 8 characters"),
+
+  emergencyContacts: Yup.array()
+    .of(
+      Yup.object().shape({
+        name: Yup.string().required("Name required"),
+        phoneNumber: Yup.string()
+          .matches(/^[0-9]{10}$/, "Invalid phone")
+          .required("Phone required"),
+        email: Yup.string().email("Invalid email").required("Email required"),
+        relationship: Yup.string().required("Relationship required"),
+        address: Yup.string().required("Address required"),
+      })
+    )
+    .min(1, "Add at least one emergency contact"),
+});
 
 export default function Register() {
   const navigate = useNavigate();
 
-  // ----------------------
-  // USER DETAILS STATE
-  // ----------------------
-  const [user, setUser] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    dob: "",
-    blood: "",
-    password: ""
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    control,
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: "onChange",
+    defaultValues: {
+      emergencyContacts: [
+        {
+          name: "",
+          phoneNumber: "",
+          email: "",
+          relationship: "",
+          address: "",
+        },
+      ],
+    },
   });
 
-  // ----------------------
-  // EMERGENCY CONTACTS (multiple)
-  // ----------------------
-  const [contacts, setContacts] = useState([
-    { cname: "", cphone: "", relation: "", cemail: "", caddress: "" }
-  ]);
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "emergencyContacts",
+  });
 
-  // ----------------------
-  // LIVE ERROR STATE
-  // ----------------------
-  const [errors, setErrors] = useState({ userErrors: {}, contactErrors: [] });
+  // ------------------- Submit Handler -------------------
+const onSubmit = async (data) => {
+  console.log("🔗 sending request to:", "/auth/register");
+console.log("🏠 baseURL from api.js:", api.defaults.baseURL);
 
-  // ----------------------
-  // INLINE VALIDATION FUNCTIONS
-  // ----------------------
-  const validateUserField = (field, value) => {
-    const newErrors = { ...errors.userErrors };
-
-    switch (field) {
-      case "name":
-        newErrors.name = value.trim() ? "" : "Name is required.";
-        break;
-      case "phone":
-        newErrors.phone = /^[6-9]\d{9}$/.test(value)
-          ? ""
-          : "Enter valid 10-digit phone.";
-        break;
-      case "email":
-        newErrors.email = value.includes("@") ? "" : "Invalid email.";
-        break;
-      case "password":
-        newErrors.password =
-          value.length >= 6 ? "" : "Password must be at least 6 characters.";
-        break;
-      case "dob":
-        newErrors.dob = value ? "" : "DOB required.";
-        break;
-      case "blood":
-        newErrors.blood = value ? "" : "Select blood group.";
-        break;
-      default:
-        break;
-    }
-
-    setErrors({ ...errors, userErrors: newErrors });
-  };
-
-  const validateContactField = (index, field, value) => {
-    const newContactErrors = [...errors.contactErrors];
-
-    if (!newContactErrors[index]) {
-      newContactErrors[index] = {};
-    }
-
-    switch (field) {
-      case "cname":
-        newContactErrors[index].cname = value.trim()
-          ? ""
-          : "Emergency contact name required.";
-        break;
-
-      case "cphone":
-        newContactErrors[index].cphone = /^[6-9]\d{9}$/.test(value)
-          ? ""
-          : "Enter valid phone.";
-        break;
-
-      case "relation":
-        newContactErrors[index].relation = value.trim()
-          ? ""
-          : "Relationship required.";
-        break;
-
-      case "cemail":
-        newContactErrors[index].cemail = value.includes("@")
-          ? ""
-          : "Invalid email.";
-        break;
-
-      case "caddress":
-        newContactErrors[index].caddress = value.trim()
-          ? ""
-          : "Address required.";
-        break;
-
-      default:
-        break;
-    }
-
-    setErrors({ ...errors, contactErrors: newContactErrors });
-  };
-
-  // ---------------------
-  // HANDLE INPUT CHANGES
-  // ---------------------
-  const handleUserChange = (field, value) => {
-    setUser({ ...user, [field]: value });
-    validateUserField(field, value);
-  };
-
-  const handleContactChange = (index, field, value) => {
-    const updatedContacts = [...contacts];
-    updatedContacts[index][field] = value;
-    setContacts(updatedContacts);
-
-    validateContactField(index, field, value);
-  };
-
-  // ---------------------
-  // ADD ANOTHER CONTACT
-  // ---------------------
-  const addNewContact = () => {
-    setContacts([
-      ...contacts,
-      { cname: "", cphone: "", relation: "", cemail: "", caddress: "" },
-    ]);
-  };
-
-  // ---------------------
-  // FINAL SUBMIT
-  // ---------------------
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!allValid) {
-    alert("Please fix all errors before submitting.");
-    return;
-  }
-
-  const payload = {
-    ...user,
-    emergencyContacts: contacts,
-  };
-
+  console.log("🔔 onSubmit called with data:", data); // <<-- debug
   try {
-    const res = await axios.post("http://localhost:3000/api/auth/register", payload);
-
-    if (res.data.success) {
-      alert("Registration Successful!");
-      window.location.href = "/login";  // redirect to login
-    }
-  } catch (error) {
-    console.error(error);
-    alert("Error registering user. Check console.");
+    const res = await api.post("/auth/register", data);
+    console.log("✅ register response:", res.data); // debug
+    alert("Registration Successful!");
+    navigate("/login");
+  } catch (err) {
+    console.error("❌ register error (axios):", err?.response || err.message || err);
+    alert(err.response?.data?.message || "Error registering");
   }
 };
 
-  // ---------------------
-  // RESET ALL
-  // ---------------------
-  const handleReset = () => {
-    setUser({
-      name: "",
-      phone: "",
-      email: "",
-      dob: "",
-      blood: "",
-      password: "",
-    });
-
-    setContacts([
-      { cname: "", cphone: "", relation: "", cemail: "", caddress: "" },
-    ]);
-
-    setErrors({ userErrors: {}, contactErrors: [] });
-  };
 
   return (
-    <div className="container py-4">
-      <div className="glass p-4 rounded shadow">
-        
-        <h2 className="text-peacock fw-bold text-center mb-4">
-          Create Your TripShield Account
-        </h2>
+    <div className="peacock-bg py-5">
+      <Container style={{ maxWidth: "850px" }}>
+        <div className="glass p-4">
+          <h2 className="text-center text-white fw-bold mb-4">
+            Create Your Account
+          </h2>
 
-        <form onSubmit={handleSubmit}>
+          {/* ------------------- Form Start ------------------- */}
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            {/* User Details */}
+            <h4 className="text-white mt-3">User Details</h4>
+            <hr className="text-white" />
 
-          {/* ------------------------------------
-              USER DETAILS SECTION
-              ------------------------------------ */}
-          <h4 className="text-tealcustom fw-semibold mb-3">User Details</h4>
-
-          <div className="row g-3">
-
-            <div className="col-md-6">
-              <label className="form-label">Full Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={user.name}
-                onChange={(e) => handleUserChange("name", e.target.value)}
-              />
-              {errors.userErrors.name && (
-                <small className="text-danger">{errors.userErrors.name}</small>
-              )}
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Phone</label>
-              <input
-                type="tel"
-                className="form-control"
-                value={user.phone}
-                onChange={(e) => handleUserChange("phone", e.target.value)}
-              />
-              {errors.userErrors.phone && (
-                <small className="text-danger">{errors.userErrors.phone}</small>
-              )}
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Email</label>
-              <input
-                type="email"
-                className="form-control"
-                value={user.email}
-                onChange={(e) => handleUserChange("email", e.target.value)}
-              />
-              {errors.userErrors.email && (
-                <small className="text-danger">{errors.userErrors.email}</small>
-              )}
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Date of Birth</label>
-              <input
-                type="date"
-                className="form-control"
-                value={user.dob}
-                onChange={(e) => handleUserChange("dob", e.target.value)}
-              />
-              {errors.userErrors.dob && (
-                <small className="text-danger">{errors.userErrors.dob}</small>
-              )}
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Blood Group</label>
-              <select
-                className="form-select"
-                value={user.blood}
-                onChange={(e) => handleUserChange("blood", e.target.value)}
-              >
-                <option value="">Choose...</option>
-                <option>A+</option><option>A-</option>
-                <option>B+</option><option>B-</option>
-                <option>O+</option><option>O-</option>
-                <option>AB+</option><option>AB-</option>
-              </select>
-              {errors.userErrors.blood && (
-                <small className="text-danger">{errors.userErrors.blood}</small>
-              )}
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Password</label>
-              <input
-                type="password"
-                className="form-control"
-                value={user.password}
-                onChange={(e) => handleUserChange("password", e.target.value)}
-              />
-              {errors.userErrors.password && (
-                <small className="text-danger">{errors.userErrors.password}</small>
-              )}
-            </div>
-
-          </div>
-
-          <hr className="my-4" />
-
-          {/* ------------------------------------
-              EMERGENCY CONTACTS (DYNAMIC)
-              ------------------------------------ */}
-          <h4 className="text-tealcustom fw-semibold mb-3">
-            Emergency Contact Details
-          </h4>
-
-          {contacts.map((c, index) => (
-            <div key={index} className="border rounded p-3 mb-3">
-
-              <h5 className="fw-bold text-peacock">
-                Contact {index + 1}
-              </h5>
-
-              <div className="row g-3 mt-2">
-
-                <div className="col-md-6">
-                  <label className="form-label">Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={c.cname}
-                    onChange={(e) =>
-                      handleContactChange(index, "cname", e.target.value)
-                    }
-                  />
-                  {errors.contactErrors[index]?.cname && (
-                    <small className="text-danger">
-                      {errors.contactErrors[index].cname}
-                    </small>
-                  )}
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Phone</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    value={c.cphone}
-                    onChange={(e) =>
-                      handleContactChange(index, "cphone", e.target.value)
-                    }
-                  />
-                  {errors.contactErrors[index]?.cphone && (
-                    <small className="text-danger">
-                      {errors.contactErrors[index].cphone}
-                    </small>
-                  )}
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Relationship</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={c.relation}
-                    onChange={(e) =>
-                      handleContactChange(index, "relation", e.target.value)
-                    }
-                  />
-                  {errors.contactErrors[index]?.relation && (
-                    <small className="text-danger">
-                      {errors.contactErrors[index].relation}
-                    </small>
-                  )}
-                </div>
-
-                <div className="col-md-6">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    value={c.cemail}
-                    onChange={(e) =>
-                      handleContactChange(index, "cemail", e.target.value)
-                    }
-                  />
-                  {errors.contactErrors[index]?.cemail && (
-                    <small className="text-danger">
-                      {errors.contactErrors[index].cemail}
-                    </small>
-                  )}
-                </div>
-
-                <div className="col-12">
-                  <label className="form-label">Address</label>
-                  <textarea
-                    className="form-control"
-                    rows="2"
-                    value={c.caddress}
-                    onChange={(e) =>
-                      handleContactChange(index, "caddress", e.target.value)
-                    }
-                  ></textarea>
-                  {errors.contactErrors[index]?.caddress && (
-                    <small className="text-danger">
-                      {errors.contactErrors[index].caddress}
-                    </small>
-                  )}
-                </div>
-
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Full Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  {...register("name")}
+                  className="glass"
+                  placeholder="John Doe"
+                />
+                <small className="text-danger">{errors.name?.message}</small>
               </div>
 
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Phone Number</Form.Label>
+                <Form.Control
+                  type="text"
+                  {...register("phoneNumber")}
+                  className="glass"
+                  placeholder="9876543210"
+                />
+                <small className="text-danger">
+                  {errors.phoneNumber?.message}
+                </small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  {...register("email")}
+                  className="glass"
+                  placeholder="you@example.com"
+                />
+                <small className="text-danger">{errors.email?.message}</small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Date of Birth</Form.Label>
+                <Form.Control
+                  type="date"
+                  {...register("dateOfBirth")}
+                  className="glass"
+                />
+                <small className="text-danger">
+                  {errors.dateOfBirth?.message}
+                </small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Blood Group</Form.Label>
+                <Form.Control
+                  type="text"
+                  {...register("bloodGroup")}
+                  className="glass"
+                  placeholder="O+ / B- / AB+"
+                />
+                <small className="text-danger">
+                  {errors.bloodGroup?.message}
+                </small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <Form.Label className="text-white">Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  {...register("password")}
+                  className="glass"
+                />
+                <small className="text-danger">
+                  {errors.password?.message}
+                </small>
+              </div>
             </div>
-          ))}
 
-          {/* Add Contact Button */}
-          <button
-            type="button"
-            className="btn btn-outline-peacock mb-3"
-            style={{ borderColor: "#046D63", color: "#046D63" }}
-            onClick={addNewContact}
-          >
-            + Add Another Contact
-          </button>
+            {/* Emergency Contacts Section */}
+            <h4 className="text-white mt-4">Emergency Contacts</h4>
+            <hr className="text-white" />
 
-          {/* FINAL BUTTONS */}
-          <div className="d-flex justify-content-between mt-4">
-            <button type="button" className="btn btn-secondary" onClick={handleReset}>
-              Reset
+            {fields.map((field, index) => (
+              <EmergencyContactBlock
+                key={field.id}
+                index={index}
+                register={register}
+                errors={errors}
+                remove={remove}
+              />
+            ))}
+
+            <button
+              type="button"
+              onClick={() =>
+                append({
+                  name: "",
+                  phoneNumber: "",
+                  email: "",
+                  relationship: "",
+                  address: "",
+                })
+              }
+              className="btn btn-gradient-outline mb-3"
+            >
+              + Add Contact
             </button>
 
-            <button type="button" className="btn btn-success">
-              Submit All
-            </button>
-          </div>
+            {/* Buttons */}
+            <div className="d-flex justify-content-center gap-3 mt-4">
+              <GradientButton
+  type="submit"
+  className="px-5"
+  onClick={() => console.log("👉 Register button clicked")}
+>
+  Register
+</GradientButton>
 
-        </form>
 
-      </div>
+              <button
+                type="button"
+                className="btn btn-secondary px-4"
+                onClick={() => reset()}
+              >
+                Reset
+              </button>
+            </div>
+          </Form>
+        </div>
+      </Container>
     </div>
   );
 }
