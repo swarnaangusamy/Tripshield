@@ -41,3 +41,9 @@ app.listen(PORT, "0.0.0.0")
     console.error("❌ Server failed to start:", err);
   });
 
+  if (require.main === module) {
+  app.listen(PORT, () => console.log(`Server listening ${PORT}`));
+}
+
+  module.exports = app;
+

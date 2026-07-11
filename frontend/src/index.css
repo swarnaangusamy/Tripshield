@@ -233,3 +233,9 @@ body {
     margin-left: 10px;
   }
 }
+
+.form-select{
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #ced4da !important;
+}
