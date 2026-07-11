@@ -1,13 +1,241 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* frontend/src/index.css */
+
+/* ---------- Theme variables ---------- */
+:root {
+  --peacock-1: #046D63; /* emerald */
+  --peacock-2: #0E9AA7; /* teal */
+  --peacock-3: #29C2B2; /* aqua */
+  --peacock-4: #05223B; /* deep navy */
+  --glass-border: rgba(255,255,255,0.10);
+  --muted-white: rgba(255,255,255,0.82);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* reset body + background */
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: radial-gradient(circle at 10% 10%, rgba(0,0,0,0.18), transparent 10%),
+              linear-gradient(180deg, rgba(2,10,12,0.8), rgba(4,14,18,0.85));
+  color: var(--muted-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Peacock animated gradient background ---------- */
+@keyframes peacockGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.peacock-bg {
+  background: linear-gradient(120deg, var(--peacock-4), var(--peacock-1), var(--peacock-2), var(--peacock-3));
+  background-size: 300% 300%;
+  animation: peacockGradient 12s ease infinite;
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+
+/* overlay lighting effect */
+.peacock-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.05), transparent 6%),
+    radial-gradient(circle at 90% 80%, rgba(255,255,255,0.03), transparent 6%);
+  pointer-events: none;
+}
+
+/* ---------- Glassmorphism utilities ---------- */
+.glass {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(2,18,18,0.35);
+  color: var(--muted-white);
+}
+
+.glass-soft {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+}
+
+/* focus style for inputs/containers */
+.glass:focus-within {
+  box-shadow: 0 10px 40px rgba(14,154,167,0.18), 0 0 0 4px rgba(14,154,167,0.04);
+  outline: none;
+}
+
+/* ---------- Buttons ---------- */
+.btn-gradient {
+  background-image: linear-gradient(90deg, rgba(4,109,99,0.95), rgba(14,154,167,0.95));
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  transition: transform .18s ease, box-shadow .18s ease, opacity .18s;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.btn-gradient:hover, .btn-gradient:focus {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(4,109,99,0.18);
+  text-decoration: none;
+}
+
+.btn-gradient-outline {
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  color: white;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+}
+
+/* bootstrap overrides for navbar links */
+.navbar .nav-link {
+  color: rgba(255,255,255,0.88);
+  transition: color .18s;
+}
+.navbar .nav-link.active, .navbar .nav-link:hover {
+  color: white;
+  text-decoration: none;
+}
+
+/* ---------- Card hover / scale ---------- */
+.ui-card {
+  transition: transform .28s cubic-bezier(.2,.9,.2,1), box-shadow .28s;
+  will-change: transform;
+}
+.ui-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(2,50,48,0.28);
+}
+
+/* ---------- Hero styles ---------- */
+.hero-caption {
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  color: #fff;
+  max-width: 720px;
+}
+.hero-height {
+  min-height: calc(72vh - 56px);
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- small helpers ---------- */
+.text-muted-soft { color: rgba(255,255,255,0.78); }
+.small-muted { color: rgba(255,255,255,0.66); }
+.halo { filter: drop-shadow(0 8px 24px rgba(14,154,167,0.12)); }
+
+/* ---------- simple in-view fade-up helper ---------- */
+.fade-up {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.fade-up.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* layout helpers */
+.landing-wrapper { min-height: calc(100vh - 120px); background: transparent; }
+
+/* responsive card grid spacing */
+@media (max-width: 767px) {
+  .hero-caption { padding: 0.9rem; max-width: 100%; }
+  .hero-height { min-height: 56vh; }
+}
+
+/* --- MAP PAGE GLASS UI --- */
+.map-glass {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 15px;
+}
+
+.map-btn {
+  background: linear-gradient(135deg, #046D63, #0E9AA7);
+  border: none;
+  color: white !important;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.map-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 15px rgba(14, 154, 167, 0.4);
+}
+
+.peacock-bg {
+  background: linear-gradient(135deg, #023b36, #035c53, #0E9AA7, #046D63);
+  background-size: 300% 300%;
+  animation: peacockFloat 12s ease infinite;
+}
+
+@keyframes peacockFloat {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/*Profile Styles*/
+.animate-slide-up {
+  animation: slideUp 0.6s ease forwards;
+}
+
+.animate-fade {
+  animation: fadeIn 0.8s ease forwards;
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Keep collapsed menu horizontal */
+.navbar-collapse.show .navbar-nav {
+  flex-direction: row !important;
+  gap: 15px;
+}
+
+/* Mobile fix */
+@media (max-width: 768px) {
+  .navbar-nav .nav-link,
+  .navbar-nav .btn {
+    margin-left: 10px;
+  }
+}
+
+.form-select{
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #ced4da !important;
 }
